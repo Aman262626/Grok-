@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CONFIG } from "@/lib/config";
-import { getHeaders } from "@/lib/engine";
+import { getHeaders, httpRequest } from "@/lib/engine";
 
 export const maxDuration = 15;
 export const dynamic = "force-dynamic";
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -22,20 +20,15 @@ export async function GET(request: NextRequest) {
     const channel =
       taskType === "image" ? "GROK_TEXT_IMAGE" : "GROK_IMAGINE";
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const res = await fetch(
+    const res = await httpRequest(
       `${CONFIG.API_BASE}/ai/${taskId}?channel=${channel}`,
       {
         headers,
-        signal: controller.signal,
+        timeout: 10000,
       }
     );
 
-    clearTimeout(timeout);
-
-    const pollData = await res.json();
+    const pollData = JSON.parse(res.body);
     const data = pollData.data || {};
 
     const result: Record<string, unknown> = {
