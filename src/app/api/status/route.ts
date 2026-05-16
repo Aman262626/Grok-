@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { CONFIG } from "@/lib/config";
 import { getHeaders } from "@/lib/engine";
 
+export const maxDuration = 15;
+export const dynamic = "force-dynamic";
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const taskId = searchParams.get("taskId");
@@ -17,12 +22,18 @@ export async function GET(request: NextRequest) {
     const channel =
       taskType === "image" ? "GROK_TEXT_IMAGE" : "GROK_IMAGINE";
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     const res = await fetch(
       `${CONFIG.API_BASE}/ai/${taskId}?channel=${channel}`,
       {
         headers,
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeout);
 
     const pollData = await res.json();
     const data = pollData.data || {};
@@ -63,6 +74,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
+    console.error(`[STATUS ERROR] ${message}`);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

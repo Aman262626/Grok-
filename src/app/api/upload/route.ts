@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CONFIG } from "@/lib/config";
 
+export const maxDuration = 30;
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -22,12 +25,15 @@ export async function POST(request: NextRequest) {
     imgbbForm.append("image", b64Image);
     imgbbForm.append("name", file.name);
 
+    console.log(`[UPLOAD] Uploading ${file.name} to ImgBB...`);
+
     const res = await fetch("https://api.imgbb.com/1/upload", {
       method: "POST",
       body: imgbbForm,
     });
 
     const data = await res.json();
+    console.log(`[UPLOAD] ImgBB status=${res.status} success=${data.success}`);
 
     if (data.success && data.data?.url) {
       return NextResponse.json({
@@ -43,6 +49,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
+    console.error(`[UPLOAD ERROR] ${message}`);
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 }

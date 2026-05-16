@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateIdentity } from "@/lib/engine";
 import { CONFIG } from "@/lib/config";
 
+export const maxDuration = 30;
+export const dynamic = "force-dynamic";
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
 
@@ -43,6 +48,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
+    console.error(`[PROXY ERROR] ${message}`);
     return new NextResponse(message, { status: 500 });
   }
 }

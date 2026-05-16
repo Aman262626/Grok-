@@ -3,6 +3,11 @@ import { CONFIG } from "@/lib/config";
 import { getHeaders, buildPayload } from "@/lib/engine";
 import { v4 as uuidv4 } from "uuid";
 
+export const maxDuration = 30;
+export const dynamic = "force-dynamic";
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -38,6 +43,11 @@ export async function POST(request: NextRequest) {
         ? `${CONFIG.API_BASE}/ai/video/create`
         : `${CONFIG.API_BASE}/ai/grok/create`;
 
+    console.log(`[GENERATE] model=${modelKey} endpoint=${endpoint}`);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -45,13 +55,27 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
 
-    const resData = await res.json();
+    clearTimeout(timeout);
+
+    const resText = await res.text();
+    console.log(`[GENERATE] status=${res.status} body=${resText.slice(0, 300)}`);
+
+    let resData;
+    try {
+      resData = JSON.parse(resText);
+    } catch {
+      return NextResponse.json(
+        { error: `Invalid response from upstream: ${resText.slice(0, 200)}` },
+        { status: 502 }
+      );
+    }
 
     if (resData.code !== 200) {
       return NextResponse.json(
-        { error: `Upstream rejected: ${JSON.stringify(resData)}` },
+        { error: `Upstream rejected: ${JSON.stringify(resData).slice(0, 300)}` },
         { status: 500 }
       );
     }
@@ -67,6 +91,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
+    console.error(`[GENERATE ERROR] ${message}`);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
