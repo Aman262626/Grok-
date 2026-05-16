@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateIdentity } from "@/lib/engine";
+import { generateIdentity, httpGetBuffer } from "@/lib/engine";
 import { CONFIG } from "@/lib/config";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
@@ -16,29 +14,25 @@ export async function GET(request: NextRequest) {
 
   try {
     const ident = generateIdentity();
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": ident.ua,
-        Referer: CONFIG.ORIGIN_URL,
-        Accept: "*/*",
-      },
+    const res = await httpGetBuffer(url, {
+      "User-Agent": ident.ua,
+      Referer: CONFIG.ORIGIN_URL,
+      Accept: "*/*",
     });
 
-    if (!res.ok) {
+    if (res.status < 200 || res.status >= 300) {
       return new NextResponse("Failed to fetch video", { status: 502 });
     }
 
-    const contentType = res.headers.get("Content-Type") || "video/mp4";
-    const contentLength = res.headers.get("Content-Length") || "";
+    const contentType = (res.headers["content-type"] as string) || "video/mp4";
+    const contentLength = (res.headers["content-length"] as string) || "";
 
     let filename = url.split("/").pop()?.split("?")[0] || "video.mp4";
     if (!filename.endsWith(".mp4")) {
       filename += ".mp4";
     }
 
-    const blob = await res.blob();
-
-    return new NextResponse(blob, {
+    return new NextResponse(new Uint8Array(res.body), {
       headers: {
         "Content-Type": contentType,
         "Content-Disposition": `attachment; filename="${filename}"`,

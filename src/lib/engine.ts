@@ -1,8 +1,121 @@
 import { CONFIG } from "./config";
 import { v4 as uuidv4 } from "uuid";
+import https from "https";
+import http from "http";
 
 function getRandomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+interface HttpResponse {
+  status: number;
+  body: string;
+  headers: Record<string, string | string[] | undefined>;
+}
+
+export function httpRequest(
+  url: string,
+  options: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+    timeout?: number;
+  } = {}
+): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const isHttps = urlObj.protocol === "https:";
+    const lib = isHttps ? https : http;
+
+    const reqOptions: https.RequestOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || (isHttps ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      method: options.method || "GET",
+      headers: options.headers || {},
+      rejectUnauthorized: false,
+      timeout: options.timeout || 30000,
+    };
+
+    const req = lib.request(reqOptions, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => {
+        const body = Buffer.concat(chunks).toString("utf-8");
+        const responseHeaders: Record<string, string | string[] | undefined> = {};
+        for (const [key, value] of Object.entries(res.headers)) {
+          responseHeaders[key] = value;
+        }
+        resolve({
+          status: res.statusCode || 0,
+          body,
+          headers: responseHeaders,
+        });
+      });
+      res.on("error", reject);
+    });
+
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error(`Request timed out after ${options.timeout || 30000}ms`));
+    });
+
+    req.on("error", (err) => {
+      reject(err);
+    });
+
+    if (options.body) {
+      req.write(options.body);
+    }
+
+    req.end();
+  });
+}
+
+export function httpGetBuffer(
+  url: string,
+  headers: Record<string, string> = {}
+): Promise<{ status: number; body: Buffer; headers: Record<string, string | string[] | undefined> }> {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const isHttps = urlObj.protocol === "https:";
+    const lib = isHttps ? https : http;
+
+    const reqOptions: https.RequestOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || (isHttps ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      method: "GET",
+      headers,
+      rejectUnauthorized: false,
+      timeout: 60000,
+    };
+
+    const req = lib.request(reqOptions, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => {
+        const responseHeaders: Record<string, string | string[] | undefined> = {};
+        for (const [key, value] of Object.entries(res.headers)) {
+          responseHeaders[key] = value;
+        }
+        resolve({
+          status: res.statusCode || 0,
+          body: Buffer.concat(chunks),
+          headers: responseHeaders,
+        });
+      });
+      res.on("error", reject);
+    });
+
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("Request timed out"));
+    });
+
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 export function generateIdentity() {

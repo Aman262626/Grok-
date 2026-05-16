@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CONFIG } from "@/lib/config";
-import { getHeaders, buildPayload } from "@/lib/engine";
+import { getHeaders, buildPayload, httpRequest } from "@/lib/engine";
 import { v4 as uuidv4 } from "uuid";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,30 +43,24 @@ export async function POST(request: NextRequest) {
 
     console.log(`[GENERATE] model=${modelKey} endpoint=${endpoint}`);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
-
-    const res = await fetch(endpoint, {
+    const res = await httpRequest(endpoint, {
       method: "POST",
       headers: {
         ...headers,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
-      signal: controller.signal,
+      timeout: 25000,
     });
 
-    clearTimeout(timeout);
-
-    const resText = await res.text();
-    console.log(`[GENERATE] status=${res.status} body=${resText.slice(0, 300)}`);
+    console.log(`[GENERATE] status=${res.status} body=${res.body.slice(0, 300)}`);
 
     let resData;
     try {
-      resData = JSON.parse(resText);
+      resData = JSON.parse(res.body);
     } catch {
       return NextResponse.json(
-        { error: `Invalid response from upstream: ${resText.slice(0, 200)}` },
+        { error: `Invalid response from upstream: ${res.body.slice(0, 200)}` },
         { status: 502 }
       );
     }
