@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --neon-blue: #00f5ff;
+  --neon-pink: #ff00ff;
+  --neon-yellow: #ffd700;
+  --neon-purple: #9d4edd;
+  --bg-dark: #0a0a0f;
+  --panel: rgba(15, 15, 25, 0.92);
+  --border: rgba(0, 245, 255, 0.3);
+  --glass: rgba(255, 255, 255, 0.08);
+  --text: #ffffff;
+  --text-secondary: #a0a0b0;
+  --background: #0a0a0f;
+  --foreground: #ffffff;
+}
+
+[data-theme="matrix"] {
+  --neon-blue: #00ff41;
+  --neon-pink: #008f11;
+  --bg-dark: #000;
+  --panel: rgba(0, 20, 0, 0.95);
+  --border: rgba(0, 255, 65, 0.4);
+  --text: #00ff41;
+  --text-secondary: #008f11;
+  --background: #000000;
+  --foreground: #00ff41;
+}
+
+[data-theme="golden"] {
+  --neon-blue: #ffd700;
+  --neon-pink: #ff8c42;
+  --bg-dark: #1a1000;
+  --panel: rgba(30, 20, 0, 0.92);
+  --border: rgba(255, 215, 0, 0.4);
+  --text: #ffd700;
+  --text-secondary: #b8860b;
+  --background: #1a1000;
+  --foreground: #ffd700;
+}
+
+[data-theme="clean"] {
+  --neon-blue: #4a90e2;
+  --neon-pink: #50c878;
+  --bg-dark: #f8f9fa;
+  --panel: rgba(255, 255, 255, 0.95);
+  --border: rgba(74, 144, 226, 0.3);
+  --text: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --background: #f8f9fa;
+  --foreground: #2c3e50;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--neon-blue) #111;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: #111;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--neon-blue);
+  border-radius: 3px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-dark);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  transition: background 0.5s;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .glass-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+  .glass-bg {
+    background: var(--glass);
+  }
+  .neon-text {
+    color: var(--neon-blue);
+  }
+  .neon-border {
+    border-color: var(--neon-blue);
+  }
+  .gradient-btn {
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-pink));
+  }
+}
